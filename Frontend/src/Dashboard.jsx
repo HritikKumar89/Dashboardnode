@@ -62,12 +62,23 @@ function Dashboard() {
   ];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Arial' }}>
+    <div style={{
+      display: 'flex',
+      width: '100vw',
+      height: '100vh',
+      overflow: 'hidden',
+      fontFamily: 'Arial'
+    }}>
       {/* Sidebar */}
       {sidebarOpen && (
         <div style={{
-          width: '220px', background: '#1e3a8a', color: '#fff',
-          padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px'
+          width: '220px',
+          background: '#1e3a8a',
+          color: '#fff',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
         }}>
           <h2>Dashboard</h2>
           <a href="#" style={{ color: '#fff', textDecoration: 'none' }}>Home</a>
@@ -75,8 +86,13 @@ function Dashboard() {
           <a href="#" style={{ color: '#fff', textDecoration: 'none' }}>Analytics</a>
           <a href="#" style={{ color: '#fff', textDecoration: 'none' }}>Settings</a>
           <button onClick={handleLogout} style={{
-            marginTop: 'auto', backgroundColor: '#ef4444', color: 'white',
-            border: 'none', padding: '10px', borderRadius: '4px', cursor: 'pointer'
+            marginTop: 'auto',
+            backgroundColor: '#ef4444',
+            color: 'white',
+            border: 'none',
+            padding: '10px',
+            borderRadius: '4px',
+            cursor: 'pointer'
           }}>
             Logout
           </button>
@@ -84,11 +100,21 @@ function Dashboard() {
       )}
 
       {/* Main Content */}
-      <div style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+      <div style={{
+        flex: 1,
+        backgroundColor: '#f9fafb',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'auto'
+      }}>
         {/* Navbar */}
         <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '16px 24px', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '16px 24px',
+          background: '#fff',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
         }}>
           <FaBars size={20} onClick={toggleSidebar} style={{ cursor: 'pointer' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -100,13 +126,19 @@ function Dashboard() {
 
         {/* Stats */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '20px', padding: '20px'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '20px',
+          padding: '20px',
+          flexShrink: 0
         }}>
           {stats.map((stat, idx) => (
             <div key={idx} style={{
-              backgroundColor: '#fff', padding: '16px', borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05)', textAlign: 'center'
+              backgroundColor: '#fff',
+              padding: '16px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              textAlign: 'center'
             }}>
               <h3 style={{ margin: 0, color: stat.color }}>{stat.change}</h3>
               <h2 style={{ margin: '10px 0' }}>{stat.value}</h2>
@@ -117,18 +149,25 @@ function Dashboard() {
 
         {/* Charts */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px',
-          padding: '0 20px 20px 20px'
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '20px',
+          padding: '0 20px 20px 20px',
+          flexGrow: 1
         }}>
           <div style={{
-            backgroundColor: '#fff', padding: '20px', borderRadius: '8px',
+            backgroundColor: '#fff',
+            padding: '20px',
+            borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
           }}>
             <h3>Activity Over Time</h3>
             <Line data={lineData} />
           </div>
           <div style={{
-            backgroundColor: '#fff', padding: '20px', borderRadius: '8px',
+            backgroundColor: '#fff',
+            padding: '20px',
+            borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
           }}>
             <h3>Task Breakdown</h3>

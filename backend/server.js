@@ -3,55 +3,115 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const nodemailer = require('nodemailer');
 
 const app = express();
 
+const MONGO_URI = 'mongodb://127.0.0.1:27017/mern-auth';
+
 const corsOptions = {
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST','PUT', 'DELETE'], 
-    credentials: true,           
-  };
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+};
 
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-mongoose.connect('mongodb://localhost:27017/mern-auth', {
-}).then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+console.log('Connecting to MongoDB:', MONGO_URI);
+mongoose
+  .connect(MONGO_URI)
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error(' MongoDB error:', err.message));
 
 const UserSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
 });
 const User = mongoose.model('User', UserSchema);
 
-app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    try {
-        const user = new User({ 
-            username, 
-            password: hashedPassword 
-        });
-        await user.save();
-        console.log(user)
-        res.json({ message: 'User registered successfully!' });
-    } catch (err) {
-        res.status(400).json({ error: 'Username already exists' });
-    }
+const otpStore = new Map();
+
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.resend.com',
+  port: 587,
+  auth: {
+    user: 'resend',
+    pass: 're_DKx2seVx_FkTYZad1HZR7qY81TVaDWdcC', 
+  },
+});
+
+
+app.post('/api/send-otp', async (req, res) => {
+  const { email, username, password } = req.body;
+
+  const existing = await User.findOne({ $or: [{ email }, { username }] });
+  if (existing) return res.status(400).json({ error: 'User already exists' });
+
+  const existingOtp = otpStore.get(email);
+  if (existingOtp && Date.now() - existingOtp.createdAt < 60 * 1000) {
+    return res.status(429).json({ error: 'Please wait before requesting a new OTP' });
+  }
+
+  const otp = generateOTP();
+  otpStore.set(email, { otp, username, password, createdAt: Date.now() });
+
+  try {
+    await transporter.sendMail({
+      from: 'onboarding@resend.dev',
+      to: email,
+      subject: 'Your OTP Code',
+      text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
+    });
+    res.json({ message: 'OTP sent to email' });
+  } catch (err) {
+    console.error('Failed to send OTP:', err.message);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+app.post('/api/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+
+  const stored = otpStore.get(email);
+  if (!stored || stored.otp !== otp) {
+    return res.status(400).json({ error: 'Invalid or expired OTP' });
+  }
+
+  if (Date.now() - stored.createdAt > 5 * 60 * 1000) {
+    otpStore.delete(email);
+    return res.status(400).json({ error: 'OTP expired' });
+  }
+
+  const hashedPassword = await bcrypt.hash(stored.password, 10);
+  const user = new User({
+    email,
+    username: stored.username,
+    password: hashedPassword,
+  });
+
+  await user.save();
+  otpStore.delete(email);
+  res.json({ message: 'Registration successful' });
 });
 
 app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-    const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+  const { username, password } = req.body;
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+  const user = await User.findOne({ username });
+  if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign('secretkey', { expiresIn: '1h' });
-    res.cookie('token',token)
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return res.status(400).json({ error: 'Invalid credentials' });
+
+  const token = jwt.sign({ id: user._id }, 'secret', { expiresIn: '1h' });
+  res.json({ token });
 });
 
-app.listen(5000, () => console.log('Server running on http://localhost:5000'));
+const PORT = 5000;
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
